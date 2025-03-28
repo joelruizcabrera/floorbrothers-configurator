@@ -1,15 +1,28 @@
 <script setup lang="ts">
-import {onMounted, ref} from "vue";
+import {onMounted, ref, watch} from "vue";
 import renderEngine from '@/plugins/renderEngine.ts'
 
-const roomX = ref(0)
-const roomY = ref(0)
+const roomX = ref(1)
+const roomY = ref(1)
+
+let engine;
 
 onMounted(() => {
-  const engine = new renderEngine("#engine")
+  engine = new renderEngine("#engine")
   engine.createView()
 })
 
+watch(roomX, async (newX, oldX) => {
+  if (newX !== oldX) {
+    engine.updateFloor(roomX.value, roomY.value)
+  }
+})
+
+watch(roomY, async (newY, oldY) => {
+  if (newY !== oldY) {
+    engine.updateFloor(roomX.value, roomY.value)
+  }
+})
 </script>
 
 <template>
