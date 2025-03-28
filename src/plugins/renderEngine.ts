@@ -7,7 +7,7 @@ export default class renderEngine {
     camera;
     renderer;
 
-    constructor(id) {
+    constructor(id: string) {
         this.container = document.querySelector(id);
         this.camera = new THREE.PerspectiveCamera( 60, this.container.clientWidth / this.container.clientHeight, 1, 100 );
         this.scene = new THREE.Scene();
@@ -26,7 +26,7 @@ export default class renderEngine {
         this.container.appendChild( this.renderer.domElement );
 
         window.addEventListener( 'resize', () => {
-            this.onWindowResize(this.container)
+            this.onWindowResize()
         });
 
         this.renderer.render(this.scene, this.camera)
