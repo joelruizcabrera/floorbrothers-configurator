@@ -5,7 +5,7 @@ import renderEngine from '@/plugins/renderEngine.ts'
 const roomX = ref(1)
 const roomY = ref(1)
 
-let engine;
+let engine:any;
 
 onMounted(() => {
   engine = new renderEngine("#engine")
