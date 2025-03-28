@@ -152,16 +152,14 @@ export default class renderEngine {
     }
 
     removeOldTiles():void {
-        console.log(this.scene)
         this.currentTilesIds.forEach((obj) => {
             // @ts-ignore
             const object = (this.scene.getObjectByProperty('uuid', obj) as THREE.Mesh)
-            object!.geometry.dispose();
+            object.geometry.dispose();
             (object!.material as THREE.MeshBasicMaterial).dispose();
             this.scene.remove(object!)
         })
         this.currentTilesIds = []
-        console.log(this.scene)
     }
     /*async addTiles():Promise<void> {
         const loader = new GLTFLoader();
@@ -229,11 +227,11 @@ export class Tile {
         return this.y;
     }
 
-    getCubeUuid(): string[] {
-        return [this.cube!.uuid]
+    getCubeUuid(): string {
+        return this.cube!.uuid
     }
-    getFrameUuid(): string[] {
-        return [this.frame!.uuid]
+    getFrameUuid(): string {
+        return this.frame!.uuid
     }
 
     render() {
