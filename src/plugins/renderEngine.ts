@@ -15,6 +15,7 @@ export default class renderEngine {
     floor;
 
     constructor(id: string) {
+
         this.container = document.querySelector(id);
         this.camera = new THREE.PerspectiveCamera( 60, this.container!.clientWidth / this.container!.clientHeight, 1, 100 );
         this.scene = new THREE.Scene();
@@ -74,13 +75,15 @@ export default class renderEngine {
         console.log(y)
     }
     onWindowResize():void {
+
+        this.camera.aspect = this.container!.clientWidth / this.container!.clientHeight;
         this.camera.updateProjectionMatrix();
 
         this.renderer.setSize(this.container!.clientWidth, this.container!.clientHeight);
         this.render();
 
     }
-    render() {
+    render():void {
         this.renderer.clear();
         this.renderer.render( this.scene, this.camera );
     }
