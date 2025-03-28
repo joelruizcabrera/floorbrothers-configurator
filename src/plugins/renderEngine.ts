@@ -3,10 +3,7 @@ import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { KMZLoader } from 'three/addons/loaders/KMZLoader.js';
 import {GLTFLoader} from "three/examples/jsm/loaders/GLTFLoader.js";
-
-// eslint-disable-next-line @typescript-eslint/ban-ts-comment
-// @ts-ignore
-import modelDefault from '../assets/tile_default.glb'
+import {DRACOLoader} from "three/examples/jsm/loaders/DRACOLoader.js";
 
 export default class renderEngine {
 
@@ -39,7 +36,7 @@ export default class renderEngine {
 
         this.controls = new OrbitControls( this.camera, this.renderer.domElement );
     }
-    createView():void {
+    async createView():Promise<void> {
         this.renderer.setSize(this.container!.clientWidth, this.container!.clientHeight);
         this.scene.background = new THREE.Color('white');
 
@@ -51,12 +48,12 @@ export default class renderEngine {
         this.camera.position.set( 4, 6, 20 );
         this.scene.add(this.camera)
 
+        await this.addTiles()
+
         this.renderer.autoClear = false;
         this.renderer.setPixelRatio( window.devicePixelRatio );
         this.renderer.setSize( this.container!.clientWidth, this.container!.clientHeight );
         this.container!.appendChild( this.renderer.domElement );
-
-        this.addTiles()
 
         if (this.config.showGrid) {
             const grid = new THREE.GridHelper( 50, 50, 0xffffff, 0x7b7b7b );
@@ -73,13 +70,13 @@ export default class renderEngine {
         });
         this.controls.update();
 
-        // resize function needs to be always on bottom of create view
+        this.camera.updateProjectionMatrix();
+        this.render()
 
+        // resize function needs to be always on bottom of create view
         window.addEventListener( 'resize', () => {
             this.onWindowResize()
         });
-
-        this.renderer.render(this.scene, this.camera)
     }
     onWindowResize():void {
 
@@ -94,7 +91,7 @@ export default class renderEngine {
         this.renderer.clear();
         this.renderer.render( this.scene, this.camera );
     }
-    addTiles():void {
+    async addTiles():Promise<void> {
         /*
         TEESTTTING
         */
@@ -107,24 +104,22 @@ export default class renderEngine {
 
         const allGroup = new THREE.Group();
 
+        const dracoLoader = new DRACOLoader();
+        dracoLoader.setDecoderPath('/draco/gltf/');
+
+        loader.setDRACOLoader(dracoLoader);
+
         for (let x = 0; x < timesColumn; x++) {
             let _this = this;
             for (let y = 0; y < timesRow; y++) {
-                loader.load(
-                    modelDefault,
-                    (glb:any) => {
-                        glb.scene.scale.set(this.config.tileFactor, this.config.tileFactor, this.config.tileFactor)
-                        glb.scene.position.set(x, 1, (y + 1))
-                        _this.model = glb.scene;
-                        allGroup.add(_this.model)
-                    },
-                    function (xhr:ProgressEvent) {
-                        console.log((xhr.loaded / xhr.total) * 100 + "% loaded");
-                    },
-                    function (error:any) {
-                        console.log("An error happened:", error);
-                    }
-                );
+                loader.loadAsync('/models/tiles/tile_default_draco.glb', (xhr:ProgressEvent) => {
+                    console.log((xhr.loaded / xhr.total) * 100 + "% loaded");
+                }).then((glb:any) => {
+                    glb.scene.scale.set(this.config.tileFactor, this.config.tileFactor, this.config.tileFactor)
+                    glb.scene.position.set(x, 1, (y + 1))
+                    _this.model = glb.scene;
+                    allGroup.add(_this.model)
+                })
             }
         }
 
