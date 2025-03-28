@@ -6,6 +6,11 @@
   padding: 1rem;
   font-weight: normal;
 }
+@media (max-width: 767.98px) {
+  #app {
+    padding: .5rem;
+  }
+}
 
 a,
 .green {

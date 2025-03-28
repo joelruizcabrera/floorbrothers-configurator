@@ -73,5 +73,26 @@ watch(roomY, async (newY, oldY) => {
       border-radius: .5rem;
     }
   }
+  @media (max-width: 991.98px) {
+    --sidebar--width: 12rem;
+    &__sidebar {
+      padding: .5rem;
+    }
+  }
+  @media (max-width: 767.98px) {
+    --sidebar--width: 0rem;
+    min-height: calc(100vh - 1rem);
+    &__sidebar {
+      position: fixed;
+      padding: .5rem;
+      margin: .5rem;
+      min-width: min-content;
+      min-height: calc(100% - 2rem);
+    }
+    &__view {
+      padding: 0;
+      max-width: calc(100vw - 1rem - var(--sidebar--width));
+    }
+  }
 }
 </style>
