@@ -2,13 +2,22 @@
 import {onMounted, ref, watch} from "vue";
 import renderEngine from '@/plugins/renderEngine.ts'
 
-const roomX = ref(1)
-const roomY = ref(1)
+const roomX = ref(2)
+const roomY = ref(3)
 
 let engine:any;
 
 onMounted(() => {
-  engine = new renderEngine("#engine")
+  engine = new renderEngine("#engine", {
+    tileX: 39.5,
+    tileY: 39.5,
+    tileZ: 1.8,
+    showGrid: true,
+    showAxes: true,
+    tileFactor: 0.005,
+    roomX: roomX.value,
+    roomY: roomY.value
+  })
   engine.createView()
 })
 
