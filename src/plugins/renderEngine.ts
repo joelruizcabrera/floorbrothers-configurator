@@ -9,12 +9,12 @@ export default class renderEngine {
 
     constructor(id: string) {
         this.container = document.querySelector(id);
-        this.camera = new THREE.PerspectiveCamera( 60, this.container.clientWidth / this.container.clientHeight, 1, 100 );
+        this.camera = new THREE.PerspectiveCamera( 60, this.container!.clientWidth / this.container!.clientHeight, 1, 100 );
         this.scene = new THREE.Scene();
         this.renderer = new THREE.WebGLRenderer( { antialias: true } );
     }
     createView():void {
-        this.renderer.setSize(this.container.clientWidth, this.container.clientHeight);
+        this.renderer.setSize(this.container!.clientWidth, this.container!.clientHeight);
         this.scene.background = new THREE.Color('white');
 
         this.camera.position.set( 0, 0, 10 );
@@ -22,8 +22,8 @@ export default class renderEngine {
 
         this.renderer.autoClear = false;
         this.renderer.setPixelRatio( window.devicePixelRatio );
-        this.renderer.setSize( this.container.clientWidth, this.container.clientHeight );
-        this.container.appendChild( this.renderer.domElement );
+        this.renderer.setSize( this.container!.clientWidth, this.container!.clientHeight );
+        this.container!.appendChild( this.renderer.domElement );
 
         window.addEventListener( 'resize', () => {
             this.onWindowResize()
@@ -34,7 +34,7 @@ export default class renderEngine {
     onWindowResize():void {
         this.camera.updateProjectionMatrix();
 
-        this.renderer.setSize(this.container.clientWidth, this.container.clientHeight);
+        this.renderer.setSize(this.container!.clientWidth, this.container!.clientHeight);
         this.render();
 
     }
