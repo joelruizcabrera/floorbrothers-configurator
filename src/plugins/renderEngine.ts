@@ -4,7 +4,7 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { KMZLoader } from 'three/addons/loaders/KMZLoader.js';
 import {GLTFLoader} from "three/examples/jsm/loaders/GLTFLoader.js";
 import {DRACOLoader} from "three/examples/jsm/loaders/DRACOLoader.js";
-import {Scene} from "three";
+import {BufferGeometry, Scene} from "three";
 
 interface ConfigInterfaceEngine {
     tileX: number,
@@ -33,6 +33,9 @@ export default class renderEngine {
     config:ConfigInterfaceEngine;
 
     currentTilesIds:[];
+    currentWallsIds:[];
+
+    cameraPos:any;
 
     model:any;
 
@@ -47,6 +50,7 @@ export default class renderEngine {
         this.light = new THREE.DirectionalLight( 0xffffff, 3 );
 
         this.currentTilesIds = []
+        this.currentWallsIds = []
 
         this.controls = new OrbitControls( this.camera, this.renderer.domElement );
     }
@@ -114,10 +118,10 @@ export default class renderEngine {
         const timesColumn = Math.floor((this.config.roomX - (this.config.roomX % tileXMeter)) / tileXMeter)
         const timesRow = Math.floor((this.config.roomY - (this.config.roomY % tileYMeter)) / tileYMeter)
 
-        console.log("----------------------------------")
-
         for (let x = 0; x < timesColumn; x++) {
             for (let y = 0; y < timesRow; y++) {
+                let startX = (((tileXMeter * timesColumn) / 2) - (tileXMeter * timesColumn) + (tileXMeter / 2))
+                let startY = (((tileYMeter * timesRow) / 2) - (tileYMeter * timesRow) + (tileYMeter / 2))
                 const tile = new Tile(
                 {
                         x: tileXMeter,
@@ -127,8 +131,8 @@ export default class renderEngine {
                     this.scene,
                     (x + "-" + y),
                     {
-                        posX: ((x + 1) * tileXMeter),
-                        posY: ((y + 1) * tileYMeter) //überarbeiten !
+                        posX: (startX + (tileXMeter * x)),
+                        posY: (startY + (tileYMeter * y)),
                     }
                 )
                 tile.render()
@@ -140,6 +144,7 @@ export default class renderEngine {
                 }
             }
         }
+        this.renderWalls()
     }
     updateFloor(roomX:number, roomY:number) {
         this.config.roomX = roomX;
@@ -161,38 +166,56 @@ export default class renderEngine {
         })
         this.currentTilesIds = []
     }
-    /*async addTiles():Promise<void> {
-        const loader = new GLTFLoader();
+    renderWalls():void {
 
-        const timesColumn = Math.floor(this.config.testXMeters / this.config.tileSize)
-        const timesRow = Math.floor((this.config.testYMeters - 1) / this.config.tileSize)
-
-        console.log(timesColumn)
-
-        const allGroup = new THREE.Group();
-
-        const dracoLoader = new DRACOLoader();
-        dracoLoader.setDecoderPath('/draco/gltf/');
-
-        loader.setDRACOLoader(dracoLoader);
-
-        for (let x = 0; x < timesColumn; x++) {
-            let _this = this;
-            for (let y = 0; y < timesRow; y++) {
-                loader.loadAsync('/models/tiles/tile_default_draco.glb', (xhr:ProgressEvent) => {
-                    console.log((xhr.loaded / xhr.total) * 100 + "% loaded");
-                }).then((glb:any) => {
-                    glb.scene.scale.set(this.config.tileFactor, this.config.tileFactor, this.config.tileFactor)
-                    glb.scene.position.set(x, 1, (y + 1))
-                    _this.model = glb.scene;
-                    allGroup.add(_this.model)
-                })
-            }
+        if (this.currentWallsIds.length > 0) {
+            this.currentWallsIds.forEach((obj) => {
+                // @ts-ignore
+                const object = (this.scene.getObjectByProperty('uuid', obj) as THREE.Mesh)
+                object.geometry.dispose();
+                (object!.material as THREE.MeshBasicMaterial).dispose();
+                this.scene.remove(object!)
+            })
         }
+        this.currentWallsIds = []
 
-        allGroup.updateMatrixWorld( true )
-        this.scene.add(allGroup)
-    }*/
+        const floor = new THREE.Mesh(
+            new THREE.PlaneGeometry(this.config.roomX, this.config.roomY),
+            new THREE.MeshBasicMaterial( {color: 0x25282A, side: THREE.DoubleSide} )
+        )
+        floor.rotation.set(Math.PI / 2, 0, 0)
+        this.scene.add(floor)
+
+        const afterWall = new THREE.Mesh(
+            new THREE.PlaneGeometry(this.config.roomX, 1),
+            new THREE.MeshBasicMaterial( {color: 0x2D2335, side: THREE.DoubleSide} )
+        )
+        afterWall.position.set(((this.config.roomX * -1) + this.config.roomX), .5, (0 - (this.config.roomY / 2)))
+        this.scene.add(afterWall)
+
+        const leftWall = new THREE.Mesh(
+            new THREE.PlaneGeometry(this.config.roomY, .75),
+            new THREE.MeshBasicMaterial( {color: 0x2D2335, side: THREE.DoubleSide} )
+        )
+        leftWall.rotation.set(0, Math.PI / 2, 0)
+        leftWall.position.set((0 - (this.config.roomX / 2)), .375, 0)
+        this.scene.add(leftWall)
+
+        console.log(floor)
+
+        // @ts-ignore
+        this.currentWallsIds.push(floor.uuid)
+        // @ts-ignore
+        this.currentWallsIds.push(afterWall.uuid)
+        // @ts-ignore
+        this.currentWallsIds.push(leftWall.uuid)
+
+        console.log(this.currentWallsIds)
+
+    }
+    switch2d():void {
+
+    }
 }
 
 export class Tile {
@@ -242,7 +265,8 @@ export class Tile {
         const geometry = new THREE.BoxGeometry( this.x, this.z, this.y );
         const material = new THREE.MeshBasicMaterial( {color: 0x00ff00} );
         this.cube = new THREE.Mesh( geometry, material );
-        this.cube.position.set(this.posX, 0, this.posY)
+
+        this.cube.position.set(this.posX, ((this.z / 2) + 0.01), this.posY)
         this.scene!.add(this.cube)
 
         if (this.showWireframe) {
@@ -253,8 +277,12 @@ export class Tile {
         const edges = new THREE.EdgesGeometry( geometry );
         const lineMaterial = new THREE.LineBasicMaterial( { color: 'black' } );
         this.frame = new THREE.LineSegments( edges, lineMaterial );
-        this.frame!.position.set(this.posX, 0, this.posY)
+        this.frame!.position.set(this.posX, ((this.z / 2) + 0.01), this.posY)
         this.scene!.add(this.frame)
+    }
+
+    handleClick(event: Event):void {
+        console.log(event)
     }
 
 }

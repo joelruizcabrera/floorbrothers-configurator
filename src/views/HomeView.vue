@@ -13,7 +13,7 @@ onMounted(() => {
     tileY: 39.5,
     tileZ: 1.8,
     showGrid: true,
-    showAxes: true,
+    showAxes: false,
     tileFactor: 0.005,
     roomX: roomX.value,
     roomY: roomY.value
@@ -23,15 +23,23 @@ onMounted(() => {
 
 watch(roomX, async (newX, oldX) => {
   if (newX !== oldX) {
-    engine.updateFloor(roomX.value, roomY.value)
+   if (newX >= 0) {
+     engine.updateFloor(roomX.value, roomY.value)
+   }
   }
 })
 
 watch(roomY, async (newY, oldY) => {
   if (newY !== oldY) {
-    engine.updateFloor(roomX.value, roomY.value)
+    if (newY >= 0) {
+      engine.updateFloor(roomX.value, roomY.value)
+    }
   }
 })
+
+function switch2d() {
+  engine.switch2d()
+}
 </script>
 
 <template>
@@ -40,16 +48,19 @@ watch(roomY, async (newY, oldY) => {
       <img src="/logo.png" alt="FloorBrothers" class="app__engine__sidebar__logo">
       <div class="app__engine__sidebar__config">
         <div class="form-group">
-          <label for="roomX">Breite</label>
+          <label for="roomX">Breite (m)</label>
           <input type="number" v-model.lazy="roomX" name="roomX">
         </div>
         <div class="form-group">
-          <label for="roomX">Länge</label>
+          <label for="roomX">Länge (m)</label>
           <input type="number" v-model.lazy="roomY" name="roomY">
         </div>
       </div>
     </div>
     <div class="app__engine__view" id="engine">
+      <div class="app__engine__view__actions">
+        <button @click="switch2d()" class="switch">2D</button>
+      </div>
 
     </div>
   </div>
@@ -73,13 +84,36 @@ watch(roomY, async (newY, oldY) => {
       max-width: 100%;
       height: auto;
     }
+    &__config {
+      .form-group {
+        margin-bottom: 0.25rem;
+        display: flex;
+        flex-direction: column;
+        input {
+          min-height: 2rem;
+          border-radius: 0;
+          border: none;
+          padding: .5rem .75rem;
+          &:focus {
+            outline: none;
+          }
+        }
+      }
+    }
   }
   &__view {
     padding: 0 1rem;
     max-width: calc(100vw - 3rem - var(--sidebar--width));
     width: 100%;
+    position: relative;
     canvas {
       border-radius: .5rem;
+    }
+    &__actions {
+      position: absolute;
+      right: 0;
+      margin: .75rem;
+      top: 0;
     }
   }
   @media (max-width: 991.98px) {
