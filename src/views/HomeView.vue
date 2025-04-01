@@ -9,6 +9,81 @@ let engine:any;
 
 const tilesSum = ref(null)
 
+let activeColor = ref('black')
+
+const colors = [
+  {
+    key: 'black',
+    hex: '191919',
+    title: 'Schwarz'
+  },
+  {
+    key: 'white',
+    hex: 'ffffff',
+    title: 'Weiß'
+  },
+  {
+    key: 'grey',
+    hex: '63666a',
+    title: 'Grau'
+  },
+  {
+    key: 'red',
+    hex: 'da291c',
+    title: 'Rot'
+  },
+  {
+    key: 'blue',
+    hex: '06038d',
+    title: 'Blau'
+  },
+  {
+    key: 'yellow',
+    hex: 'ffd700',
+    title: 'Gelb'
+  },
+  {
+    key: 'pink',
+    hex: 'df1995',
+    title: 'Pink'
+  },
+  {
+    key: 'orange',
+    hex: 'fe5000',
+    title: 'Orange'
+  },
+  {
+    key: 'green',
+    hex: '046a38',
+    title: 'Grün'
+  },
+  {
+    key: 'turquoise',
+    hex: '40e0d0',
+    title: 'Türkis'
+  },
+  {
+    key: 'olive',
+    hex: 'dfc51a',
+    title: 'Olive'
+  },
+  {
+    key: 'khaki',
+    hex: '6a5f31',
+    title: 'Khaki'
+  },
+  {
+    key: 'neongreen',
+    hex: 'acee42',
+    title: 'Neon Grün'
+  },
+  {
+    key: 'lightblue',
+    hex: '4fc2f3',
+    title: 'Hellblau'
+  }
+]
+
 onMounted(() => {
   engine = new renderEngine("#engine", {
     tileX: 39.5,
@@ -22,6 +97,7 @@ onMounted(() => {
   })
   engine.createView()
   tilesSum.value = engine.getTilesCount()
+  engine.setClickColor('191919')
 })
 
 watch(roomX, async (newX, oldX) => {
@@ -61,6 +137,39 @@ function switch2d() {
           <label for="roomX">Länge (m)</label>
           <input type="number" v-model.lazy="roomY" name="roomY">
         </div>
+        <div class="form-group">
+          <label for="roomX">Farbe auswählen</label>
+          <div class="form-group-select">
+            <button v-for="color in colors" :key="color.key" :class="{'active': color.key == activeColor}" :style="'--element-color: #' + color.hex  + '; background: #' + color.hex + '72'" @click="() => {activeColor = color.key; engine.setClickColor(color.hex)}">
+              <svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" version="1.1" id="Pn" x="0px" y="0px" viewBox="0 0 4981 4981" style="enable-background:new 0 0 4981 4981;" xml:space="preserve">
+                <g>
+                  <defs>
+                    <rect id="SVGID_1_" width="4981" height="4981"/>
+                  </defs>
+                                  <clipPath id="SVGID_2_">
+                    <use xlink:href="#SVGID_1_" style="overflow:visible;"/>
+                  </clipPath>
+                                  <rect class="st0" width="4981" height="4981"/>
+                                  <rect class="st0" width="4981" height="4981"/>
+                                  <rect class="st0" width="4981" height="4981"/>
+                                  <rect class="st0" width="4981" height="4981"/>
+                                  <rect class="st0" width="4981" height="4981"/>
+                                  <rect class="st0" width="4981" height="4981"/>
+                                  <rect class="st0" width="4981" height="4981"/>
+                                  <rect class="st0" width="4981" height="4981"/>
+                                  <rect class="st0" width="4981" height="4981"/>
+                                  <g class="st1">
+                    <path class="st2" d="M2490.5-2259.8l-4750.2,4750.3l4750.2,4750.3l4750.2-4750.3L2490.5-2259.8z M6847.3,2490.5L2490.5,6847.3    l-4356.7-4356.8l4356.8-4356.8L6847.3,2490.5z"/>
+                                    <path class="st2" d="M2490.5,6242.4l3751.9-3751.9L2490.5-1261.4l-3751.9,3751.9L2490.5,6242.4z M2490.5-868l3358.4,3358.5    L2490.5,5849L-867.9,2490.5L2490.5-868z"/>
+                                    <path class="st2" d="M5244.1,2490.5L2490.5-263.1L-263,2490.5l2753.6,2753.6L5244.1,2490.5z M130.4,2490.5L2490.5,130.4    l2360.1,2360.1L2490.5,4850.6L130.4,2490.5z"/>
+                                    <path class="st2" d="M2490.5,735.3L735.3,2490.5l1755.2,1755.2l1755.2-1755.2L2490.5,735.3z M2490.5,1128.7l1361.8,1361.8    L2490.5,3852.3L1128.7,2490.5L2490.5,1128.7z"/>
+                                    <path class="st2" d="M3247.4,2490.5l-756.9-756.9l-756.9,756.9l756.9,756.9L3247.4,2490.5z M2490.5,2854.1l-363.4-363.6    l363.4-363.4l363.4,363.5L2490.5,2854.1z"/>
+                  </g>
+                </g>
+              </svg>
+            </button>
+          </div>
+        </div>
       </div>
     </div>
     <!--<div class="app__engine__view__actions">
@@ -92,9 +201,33 @@ function switch2d() {
     }
     &__config {
       .form-group {
-        margin-bottom: 0.25rem;
+        margin-bottom: 0.75rem;
         display: flex;
         flex-direction: column;
+        &-select {
+          display: flex;
+          flex-direction: row;
+          flex-wrap: wrap;
+          column-gap: .25rem;
+          row-gap: .25rem;
+          & > button {
+            border: 1px solid rgba(255,255,255,0.2);
+            aspect-ratio: 1;
+            padding: 0;
+            margin: 0;
+            width: 2rem;
+            height: 2rem;
+            cursor: pointer;
+            &:hover, &.active {
+              border-color: rgba(255,255,255,1)
+            }
+            svg {
+              .st0{clip-path:url(#SVGID_2_);fill:none;}
+              .st1{clip-path:url(#SVGID_2_);}
+              .st2{fill:var(--element-color);}
+            }
+          }
+        }
         input {
           min-height: 2rem;
           border-radius: 0;

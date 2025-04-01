@@ -40,6 +40,7 @@ export default class renderEngine {
     model:any;
 
     raycaster;
+    clickColor:any;
 
     constructor(id: string, config: ConfigInterfaceEngine) {
 
@@ -57,6 +58,13 @@ export default class renderEngine {
         this.raycaster = new RayCaster(this.camera, this.scene, this.container, this.renderer)
 
         this.controls = new OrbitControls( this.camera, this.renderer.domElement );
+    }
+    setClickColor(color:any) {
+        this.clickColor = color;
+        this.raycaster.setClickColor(this.clickColor)
+    }
+    getClickColor():any {
+        return this.clickColor
     }
     async createView():Promise<void> {
         this.renderer.setSize(this.container!.clientWidth, this.container!.clientHeight);
@@ -273,7 +281,7 @@ export class Tile {
         MESH
          */
         const geometry = new THREE.BoxGeometry( this.x, this.z, this.y );
-        const material = new THREE.MeshBasicMaterial( {color: 0x00ff00} );
+        const material = new THREE.MeshBasicMaterial( {color: 0x191919} );
         this.cube = new THREE.Mesh( geometry, material );
 
         this.cube.position.set(this.posX, ((this.z / 2) + 0.01), this.posY)
@@ -307,6 +315,7 @@ export class RayCaster {
     intersecting:[];
     currentTiles:[];
     renderer;
+    clickColor:any;
     constructor(camera: THREE.Camera, scene: THREE.Scene, container:any, renderer: THREE.WebGLRenderer) {
         this.camera = camera;
         this.scene = scene;
@@ -315,7 +324,10 @@ export class RayCaster {
         this.container = container
         this.intersecting = []
         this.renderer = renderer
-        this.currentTiles = []
+        this.currentTiles = [];
+    }
+    setClickColor(color:any) {
+        this.clickColor = color
     }
     setNewTiles(tiles:[]) {
         this.currentTiles = tiles
@@ -351,13 +363,13 @@ export class RayCaster {
                     // @ts-ignore
                     this.intersecting.push(obj)
                     // @ts-ignore
-                    obj.material.color.set(parseInt(('0x' + this.genRanHex(6))))
+                    obj.material.color.set(parseInt(('0x' + this.clickColor)))
+                    console.log(obj)
                 }
             }
         })
         this.renderer.clear();
         this.renderer.render( this.scene, this.camera );
-        console.log(this.intersecting)
     }
     // @ts-ignore
     genRanHex = size => [...Array(size)].map(() => Math.floor(Math.random() * 16).toString(16)).join('');
