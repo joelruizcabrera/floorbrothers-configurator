@@ -42,10 +42,13 @@ export default class renderEngine {
 
     raycaster;
     clickColor:any;
+    showWalls:boolean;
 
     constructor(id: string, config: ConfigInterfaceEngine) {
 
         this.config = config;
+
+        this.showWalls = config.showWalls;
 
         this.container = document.querySelector(id);
         this.camera = new THREE.PerspectiveCamera( 60, this.container!.clientWidth / this.container!.clientHeight, 1, 100 );
@@ -182,6 +185,7 @@ export default class renderEngine {
     }
 
     switchWalls(val:boolean):void {
+        this.showWalls = val
         if (!val) {
             this.currentWallsIds.forEach((e) => {
                 const object = (this.scene.getObjectByProperty('uuid', e) as THREE.Mesh)
@@ -190,9 +194,8 @@ export default class renderEngine {
                 this.scene.remove(object!)
             })
             this.currentWallsIds = []
-        } else {
-            this.renderWalls()
         }
+        this.renderWalls()
         this.render()
     }
 
@@ -239,19 +242,19 @@ export default class renderEngine {
         leftWall.rotation.set(0, Math.PI / 2, 0)
         leftWall.position.set((0 - (this.config.roomX / 2)), .375, 0)
 
-        if (this.config.showWalls) {
+        if (this.showWalls) {
             this.scene.add(afterWall)
             this.scene.add(leftWall)
+            // @ts-ignore
+            this.currentWallsIds.push(afterWall.uuid)
+            // @ts-ignore
+            this.currentWallsIds.push(leftWall.uuid)
         }
 
         console.log(floor)
 
         // @ts-ignore
         this.currentWallsIds.push(floor.uuid)
-        // @ts-ignore
-        this.currentWallsIds.push(afterWall.uuid)
-        // @ts-ignore
-        this.currentWallsIds.push(leftWall.uuid)
 
         console.log(this.currentWallsIds)
 
