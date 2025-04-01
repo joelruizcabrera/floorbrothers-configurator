@@ -12,6 +12,7 @@ interface ConfigInterfaceEngine {
     tileZ: number,
     showGrid: boolean,
     showAxes: boolean,
+    showWalls: boolean
     tileFactor: number,
     roomX: number,
     roomY: number,
@@ -174,8 +175,24 @@ export default class renderEngine {
 
         this.removeOldTiles()
         this.renderTiles();
+        this.renderWalls()
         this.camera.updateProjectionMatrix();
         this.raycaster.setNewTiles(this.currentTilesIds)
+        this.render()
+    }
+
+    switchWalls(val:boolean):void {
+        if (!val) {
+            this.currentWallsIds.forEach((e) => {
+                const object = (this.scene.getObjectByProperty('uuid', e) as THREE.Mesh)
+                object.geometry.dispose();
+                (object!.material as THREE.MeshBasicMaterial).dispose();
+                this.scene.remove(object!)
+            })
+            this.currentWallsIds = []
+        } else {
+            this.renderWalls()
+        }
         this.render()
     }
 
@@ -214,7 +231,6 @@ export default class renderEngine {
             new THREE.MeshBasicMaterial( {color: 0x2D2335, side: THREE.DoubleSide} )
         )
         afterWall.position.set(((this.config.roomX * -1) + this.config.roomX), .5, (0 - (this.config.roomY / 2)))
-        this.scene.add(afterWall)
 
         const leftWall = new THREE.Mesh(
             new THREE.PlaneGeometry(this.config.roomY, .75),
@@ -222,7 +238,11 @@ export default class renderEngine {
         )
         leftWall.rotation.set(0, Math.PI / 2, 0)
         leftWall.position.set((0 - (this.config.roomX / 2)), .375, 0)
-        this.scene.add(leftWall)
+
+        if (this.config.showWalls) {
+            this.scene.add(afterWall)
+            this.scene.add(leftWall)
+        }
 
         console.log(floor)
 

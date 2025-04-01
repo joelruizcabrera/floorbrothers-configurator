@@ -4,6 +4,7 @@ import renderEngine from '@/plugins/renderEngine.ts'
 
 const roomX = ref(2)
 const roomY = ref(3)
+const showWalls = ref(true)
 
 let engine:any;
 
@@ -89,6 +90,7 @@ onMounted(() => {
     tileX: 39.5,
     tileY: 39.5,
     tileZ: 1.8,
+    showWalls: showWalls.value,
     showGrid: false,
     showAxes: false,
     tileFactor: 0.005,
@@ -118,6 +120,11 @@ watch(roomY, async (newY, oldY) => {
   }
 })
 
+watch(showWalls, async (newVal, oldVal) => {
+  if (newVal !== oldVal) {
+    engine.switchWalls(showWalls.value)
+  }
+})
 function switch2d() {
   engine.switch2d()
 }
@@ -130,17 +137,21 @@ function switch2d() {
       <div class="app__engine__sidebar__config">
         <p style="margin: .75rem 0">Fliesen benötigt: <span v-html="tilesSum"></span></p>
         <div class="form-group">
+          <label for="showWalls">Zeige Wände</label>
+          <input type="checkbox" v-model.lazy="showWalls" name="showWalls">
+        </div>
+        <div class="form-group">
           <label for="roomX">Breite (m)</label>
           <input type="number" v-model.lazy="roomX" name="roomX">
         </div>
         <div class="form-group">
-          <label for="roomX">Länge (m)</label>
+          <label for="roomY">Länge (m)</label>
           <input type="number" v-model.lazy="roomY" name="roomY">
         </div>
         <div class="form-group">
-          <label for="roomX">Farbe auswählen</label>
+          <label for="color">Farbe auswählen</label>
           <div class="form-group-select">
-            <button v-for="color in colors" :key="color.key" :class="{'active': color.key == activeColor}" :style="'--element-color: #' + color.hex  + '; background: #' + color.hex + '72'" @click="() => {activeColor = color.key; engine.setClickColor(color.hex)}">
+            <button name="color" v-for="color in colors" :key="color.key" :class="{'active': color.key == activeColor}" :style="'--element-color: #' + color.hex  + '; background: #' + color.hex + '72'" @click="() => {activeColor = color.key; engine.setClickColor(color.hex)}">
               <svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" version="1.1" id="Pn" x="0px" y="0px" viewBox="0 0 4981 4981" style="enable-background:new 0 0 4981 4981;" xml:space="preserve">
                 <g>
                   <defs>
@@ -262,6 +273,16 @@ function switch2d() {
           &:focus {
             outline: none;
           }
+          &[type="checkbox"] {
+            width: 1rem;
+            height: 1rem;
+          }
+        }
+        &:has(> input[type="checkbox"]) {
+          flex-direction: row-reverse;
+          justify-content: start;
+          align-items: center;
+          column-gap: .5rem;
         }
       }
     }
