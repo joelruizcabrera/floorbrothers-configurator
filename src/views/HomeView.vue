@@ -279,11 +279,24 @@ function switch2d() {
       padding: .5rem;
       margin: .5rem;
       min-width: min-content;
-      min-height: calc(100% - 2rem);
+      min-height: auto;
+      z-index: 1;
     }
     &__view {
       padding: 0;
       max-width: calc(100vw - 1rem - var(--sidebar--width));
+    }
+  }
+  @media (max-width: 575.98px) {
+    &__sidebar {
+      bottom: .5rem;
+      min-width: calc(50% - 1rem);
+      &__logo {
+        display: block;
+        margin: 0 auto;
+        max-height: 3rem;
+        width: auto;
+      }
     }
   }
 }
