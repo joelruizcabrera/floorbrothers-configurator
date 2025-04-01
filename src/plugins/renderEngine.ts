@@ -14,7 +14,7 @@ interface ConfigInterfaceEngine {
     showAxes: boolean,
     tileFactor: number,
     roomX: number,
-    roomY: number
+    roomY: number,
 }
 interface ConfigInterfaceTile {
     x: number,
@@ -39,6 +39,8 @@ export default class renderEngine {
 
     model:any;
 
+    raycaster;
+
     constructor(id: string, config: ConfigInterfaceEngine) {
 
         this.config = config;
@@ -51,6 +53,8 @@ export default class renderEngine {
 
         this.currentTilesIds = []
         this.currentWallsIds = []
+
+        this.raycaster = new RayCaster(this.camera, this.scene, this.container, this.renderer)
 
         this.controls = new OrbitControls( this.camera, this.renderer.domElement );
     }
@@ -90,8 +94,8 @@ export default class renderEngine {
         });
         this.controls.update();
 
-
         this.camera.updateProjectionMatrix();
+        this.initRaycaster()
         this.render()
 
         // resize function needs to be always on bottom of create view
@@ -216,6 +220,12 @@ export default class renderEngine {
     switch2d():void {
 
     }
+    getTilesCount():number {
+        return (this.currentTilesIds.length / 2)
+    }
+    initRaycaster() {
+        this.raycaster.init(this.currentTilesIds)
+    }
 }
 
 export class Tile {
@@ -249,7 +259,6 @@ export class Tile {
     getY() {
         return this.y;
     }
-
     getCubeUuid(): string {
         return this.cube!.uuid
     }
@@ -267,6 +276,7 @@ export class Tile {
         this.cube = new THREE.Mesh( geometry, material );
 
         this.cube.position.set(this.posX, ((this.z / 2) + 0.01), this.posY)
+
         this.scene!.add(this.cube)
 
         if (this.showWireframe) {
@@ -284,5 +294,68 @@ export class Tile {
     handleClick(event: Event):void {
         console.log(event)
     }
+
+}
+
+export class RayCaster {
+    camera;
+    scene;
+    pointer;
+    container;
+    raycast;
+    intersecting:[];
+    currentTiles:[];
+    renderer;
+    constructor(camera: THREE.Camera, scene: THREE.Scene, container:any, renderer: THREE.WebGLRenderer) {
+        this.camera = camera;
+        this.scene = scene;
+        this.raycast = new THREE.Raycaster();
+        this.pointer = new THREE.Vector2();
+        this.container = container
+        this.intersecting = []
+        this.renderer = renderer
+        this.currentTiles = []
+    }
+    init(tiles:[]) {
+        this.currentTiles = tiles
+        // @ts-ignore
+        this.container.addEventListener( 'click', (event) => {
+            this.onPointerMove(event)
+        });
+
+    }
+    onPointerMove(event: any):void {
+        const rect = this.renderer.domElement.getBoundingClientRect();
+
+        const x = event.clientX - rect.left;
+        const y = event.clientY - rect.top;
+
+        this.pointer.x =( x / this.container.clientWidth ) *  2 - 1;
+        this.pointer.y =( y / this.container.clientHeight) * - 2 + 1;
+        this.render()
+    }
+    render():void {
+        this.raycast.setFromCamera(this.pointer, this.camera)
+        const meshs = this.scene.children.filter((obj) => obj.type === 'Mesh')
+        this.intersecting = []
+        meshs.forEach((mesh) => {
+            const intersects = this.raycast.intersectObject(mesh);
+            if (intersects.length !== 0) {
+                let obj = intersects[0].object;
+                // @ts-ignore
+                if (this.currentTiles.includes(obj.uuid)) {
+                    // @ts-ignore
+                    this.intersecting.push(obj)
+                    // @ts-ignore
+                    obj.material.color.set(parseInt(('0x' + this.genRanHex(6))))
+                }
+            }
+        })
+        this.renderer.clear();
+        this.renderer.render( this.scene, this.camera );
+        console.log(this.intersecting)
+    }
+    // @ts-ignore
+    genRanHex = size => [...Array(size)].map(() => Math.floor(Math.random() * 16).toString(16)).join('');
 
 }

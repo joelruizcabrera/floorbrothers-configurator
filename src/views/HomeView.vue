@@ -7,6 +7,8 @@ const roomY = ref(3)
 
 let engine:any;
 
+const tilesSum = ref(null)
+
 onMounted(() => {
   engine = new renderEngine("#engine", {
     tileX: 39.5,
@@ -19,12 +21,14 @@ onMounted(() => {
     roomY: roomY.value
   })
   engine.createView()
+  tilesSum.value = engine.getTilesCount()
 })
 
 watch(roomX, async (newX, oldX) => {
   if (newX !== oldX) {
    if (newX >= 0) {
      engine.updateFloor(roomX.value, roomY.value)
+     tilesSum.value = engine.getTilesCount()
    }
   }
 })
@@ -33,6 +37,7 @@ watch(roomY, async (newY, oldY) => {
   if (newY !== oldY) {
     if (newY >= 0) {
       engine.updateFloor(roomX.value, roomY.value)
+      tilesSum.value = engine.getTilesCount()
     }
   }
 })
@@ -47,6 +52,7 @@ function switch2d() {
     <div class="app__engine__sidebar">
       <img src="/logo.png" alt="FloorBrothers" class="app__engine__sidebar__logo">
       <div class="app__engine__sidebar__config">
+        <p style="margin: .75rem 0">Fliesen benötigt: <span v-html="tilesSum"></span></p>
         <div class="form-group">
           <label for="roomX">Breite (m)</label>
           <input type="number" v-model.lazy="roomX" name="roomX">
@@ -57,11 +63,11 @@ function switch2d() {
         </div>
       </div>
     </div>
-    <div class="app__engine__view" id="engine">
-      <div class="app__engine__view__actions">
-        <button @click="switch2d()" class="switch">2D</button>
-      </div>
-
+    <!--<div class="app__engine__view__actions">
+      <button @click="switch2d()" class="switch">2D</button>
+    </div>-->
+    <div class="app__engine__view">
+      <div id="engine"></div>
     </div>
   </div>
 </template>
@@ -103,11 +109,21 @@ function switch2d() {
   }
   &__view {
     padding: 0 1rem;
-    max-width: calc(100vw - 3rem - var(--sidebar--width));
+    padding-right: 0;
+    max-width: calc(100vw - var(--sidebar--width));
     width: 100%;
     position: relative;
     canvas {
       border-radius: .5rem;
+    }
+    #engine {
+      position: static;
+      top: 0;
+      left: 0;
+      padding: 0;
+      margin: 0;
+      width: 100%;
+      height: 100%;
     }
     &__actions {
       position: absolute;
