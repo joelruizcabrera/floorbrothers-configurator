@@ -66,6 +66,16 @@ export default class renderEngine {
     getClickColor():any {
         return this.clickColor
     }
+    changeAllColor() {
+        this.currentTilesIds.forEach((e) => {
+            const obj = (this.scene.getObjectByProperty('uuid', e) as THREE.Mesh)
+            if (obj.type === 'Mesh') {
+                // @ts-ignore
+                obj.material.color.set(parseInt(('0x' + this.clickColor)))
+            }
+        })
+        this.render()
+    }
     async createView():Promise<void> {
         this.renderer.setSize(this.container!.clientWidth, this.container!.clientHeight);
         this.scene.background = new THREE.Color('white');
