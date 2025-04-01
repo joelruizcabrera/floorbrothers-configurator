@@ -157,6 +157,7 @@ export default class renderEngine {
         this.removeOldTiles()
         this.renderTiles();
         this.camera.updateProjectionMatrix();
+        this.raycaster.setNewTiles(this.currentTilesIds)
         this.render()
     }
 
@@ -315,6 +316,9 @@ export class RayCaster {
         this.intersecting = []
         this.renderer = renderer
         this.currentTiles = []
+    }
+    setNewTiles(tiles:[]) {
+        this.currentTiles = tiles
     }
     init(tiles:[]) {
         this.currentTiles = tiles
