@@ -5,6 +5,7 @@ import renderEngine from '@/plugins/renderEngine.ts'
 const roomX = ref(2)
 const roomY = ref(3)
 const showWalls = ref(true)
+const configFileInput = ref()
 
 let engine:any;
 
@@ -128,6 +129,27 @@ watch(showWalls, async (newVal, oldVal) => {
 function switch2d() {
   engine.switch2d()
 }
+function openImport() {
+  configFileInput.value.click()
+}
+async function importLayout(event: any) {
+  let configFile = event.target.files || event.dataTransfer.files;
+  if (!configFile.length) return;
+  let jsonConfig = JSON.parse(await configFile[0].text())
+
+  if (jsonConfig.layoutConfig) {
+    roomX.value = jsonConfig.layoutConfig.roomX
+    roomY.value = jsonConfig.layoutConfig.roomY
+    showWalls.value = jsonConfig.layoutConfig.showWalls
+  }
+  engine.renderTiles()
+
+  if (jsonConfig.objects.length > 0) {
+    engine.loadConfig(jsonConfig.objects)
+  }
+
+  console.log(jsonConfig)
+}
 </script>
 
 <template>
@@ -185,6 +207,16 @@ function switch2d() {
             <p><span v-html="colors.filter((e) => e.key === activeColor).map(obj => obj.title)"></span> füllen.</p>
           </button>
         </div>
+        <div class="form-group">
+          <label for="exportLayout">Layout exportieren</label>
+          <button class="btn" name="exportLayout" @click="engine.exportLayout()">Export (.json)</button>
+          <button class="btn outline" name="exportLayout" @click="engine.exportLayout()">Export (.png)</button>
+        </div>
+        <div class="form-group">
+          <label for="importLayout">Layout importieren</label>
+          <input type="file" ref="configFileInput" accept="application/json" style="display: none" @change="importLayout($event)"/>
+          <button class="btn" name="importLayout" @click="openImport()">Konfiguration laden</button>
+        </div>
       </div>
     </div>
     <!--<div class="app__engine__view__actions">
@@ -197,6 +229,28 @@ function switch2d() {
 </template>
 
 <style lang="scss">
+button.btn {
+  background: #fff;
+  border: 1px solid #fff;
+  color: #000;
+  padding: .5rem .75rem;
+  font-weight: 700;
+  cursor: pointer;
+  margin: .25rem 0;
+  transition: background .3s ease, color .3s ease;
+  &:hover {
+    background: rgba(255,255,255,.5);
+    color: #fff;
+  }
+  &.outline {
+    background: rgba(255,255,255,0);
+    color: #fff;
+    &:hover {
+      background: rgba(255,255,255,1);
+      color: #000;
+    }
+  }
+}
 .app__engine {
   min-height: calc(100vh - 2rem);
   display: flex;

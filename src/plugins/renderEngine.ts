@@ -44,6 +44,8 @@ export default class renderEngine {
     clickColor:any;
     showWalls:boolean;
 
+    tilesOrder:[];
+
     constructor(id: string, config: ConfigInterfaceEngine) {
 
         this.config = config;
@@ -54,10 +56,11 @@ export default class renderEngine {
         this.camera = new THREE.PerspectiveCamera( 60, this.container!.clientWidth / this.container!.clientHeight, 1, 100 );
         this.scene = new THREE.Scene();
         this.renderer = new THREE.WebGLRenderer( { antialias: true } );
-        this.light = new THREE.DirectionalLight( 0xffffff, 3 );
+        this.light = new THREE.AmbientLight( 0xffffff, 1 );
 
         this.currentTilesIds = []
         this.currentWallsIds = []
+        this.tilesOrder = []
 
         this.raycaster = new RayCaster(this.camera, this.scene, this.container, this.renderer)
 
@@ -144,6 +147,10 @@ export default class renderEngine {
         const timesColumn = Math.floor((this.config.roomX - (this.config.roomX % tileXMeter)) / tileXMeter)
         const timesRow = Math.floor((this.config.roomY - (this.config.roomY % tileYMeter)) / tileYMeter)
 
+        if (this.tilesOrder.length > 0) {
+            this.tilesOrder = []
+        }
+
         for (let x = 0; x < timesColumn; x++) {
             for (let y = 0; y < timesRow; y++) {
                 let startX = (((tileXMeter * timesColumn) / 2) - (tileXMeter * timesColumn) + (tileXMeter / 2))
@@ -162,6 +169,11 @@ export default class renderEngine {
                     }
                 )
                 tile.render()
+                // @ts-ignore
+                this.tilesOrder.push({
+                    uuid: tile.getCubeUuid(),
+                    orderId: (x + "-" + y),
+                })
                 // @ts-ignore
                 this.currentTilesIds.push(tile.getCubeUuid())
                 if (tile.getFrameUuid() !== null) {
@@ -251,12 +263,8 @@ export default class renderEngine {
             this.currentWallsIds.push(leftWall.uuid)
         }
 
-        console.log(floor)
-
         // @ts-ignore
         this.currentWallsIds.push(floor.uuid)
-
-        console.log(this.currentWallsIds)
 
     }
     switch2d():void {
@@ -267,6 +275,79 @@ export default class renderEngine {
     }
     initRaycaster() {
         this.raycaster.init(this.currentTilesIds)
+    }
+    exportLayout():void {
+        let exportObject:{} = {
+            layoutId: Math.floor(100000000 + Math.random() * 900000000),
+            layoutConfig: {
+                roomX: this.config.roomX,
+                roomY: this.config.roomY,
+                showWalls: this.showWalls
+            },
+            objects: []
+        }
+        this.currentTilesIds.forEach((id) => {
+            const object = (this.scene.getObjectByProperty('uuid', id) as THREE.Mesh)
+            if (object.type === 'Mesh') {
+                // @ts-ignore
+                exportObject.objects.push({
+                    uuid: object.uuid,
+                    // @ts-ignore
+                    color: object.material.color.getHexString(),
+                    order: this.tilesOrder.filter((e) => {
+                        return (e["uuid"] === object.uuid)
+                    }).map(e => e["orderId"])[0]
+                })
+            }
+        })
+        const exportEngine = new ExportEngine()
+        // @ts-ignore
+        exportEngine.downloadConfigFile(exportObject, true, exportObject.layoutId)
+    }
+    loadConfig(objects:[]):void {
+        this.renderTiles()
+        setTimeout(() => {
+            objects.forEach((newObj) => {
+                const uuid = this.tilesOrder.filter((e) => {
+                    return (e["orderId"] === newObj["order"])
+                }).map(e => e["uuid"])[0]
+                if (uuid !== undefined) {
+                    const obj = (this.scene.getObjectByProperty('uuid', uuid) as THREE.Mesh)
+                    // @ts-ignore
+                    obj.material.color.set(parseInt(('0x' + newObj["color"])))
+                }
+            })
+            this.render()
+        }, 100)
+
+    }
+}
+
+export class ExportEngine {
+    constructor() {
+    }
+    downloadConfigFile(json:{}, download:boolean, id:any) {
+        const fileName = 'FB_LAYOUT_' + id + '.json'
+        const file = this.renderJsonConfig(json, fileName)
+        if (download) {
+            if (window.navigator && (window.navigator as any).msSaveOrOpenBlob) { // IE
+                (window.navigator as any).msSaveOrOpenBlob(file, fileName);
+                (window.navigator as any).msSaveOrOpenBlob(file, fileName);
+            } else { //Chrome & Firefox
+                const a = document.createElement('a');
+                const url = window.URL.createObjectURL(file);
+                a.href = url;
+                a.download = fileName;
+                a.click();
+                window.URL.revokeObjectURL(url);
+                a.remove();
+            }
+        }
+    }
+    renderJsonConfig(json:{}, fileName:string):File {
+        return new File([JSON.stringify(json)], fileName, {
+            type: 'application/json'
+        })
     }
 }
 
