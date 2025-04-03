@@ -150,6 +150,18 @@ async function importLayout(event: any) {
 
   console.log(jsonConfig)
 }
+
+function exportScreenshot() {
+  let a = document.createElement("a")
+  engine.render()
+  const canvas = engine.container.querySelector("canvas")
+  // @ts-ignore
+  canvas.toBlob((blob) => {
+    a.href = window.URL.createObjectURL(blob)
+    a.download = "FB_SCREENSHOT_" + roomX.value + "m_x_" + roomY.value + "m_" + Date.now() + ".png"
+    a.click()
+  })
+}
 </script>
 
 <template>
@@ -210,7 +222,7 @@ async function importLayout(event: any) {
         <div class="form-group">
           <label for="exportLayout">Layout exportieren</label>
           <button class="btn" name="exportLayout" @click="engine.exportLayout()">Export (.json)</button>
-          <button class="btn outline" name="exportLayout" @click="engine.exportLayout()">Export (.png)</button>
+          <button class="btn outline" name="exportLayout" @click="exportScreenshot()">Export (.png)</button>
         </div>
         <div class="form-group">
           <label for="importLayout">Layout importieren</label>
