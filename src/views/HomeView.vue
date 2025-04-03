@@ -382,6 +382,7 @@ button.btn {
       min-width: min-content;
       min-height: auto;
       z-index: 1;
+      box-shadow: 0px 0px 6px 2px rgb(0 0 0 / 35%);
     }
     &__view {
       padding: 0;
@@ -392,6 +393,8 @@ button.btn {
     &__sidebar {
       bottom: .5rem;
       min-width: calc(50% - 1rem);
+      max-height: 40vh;
+      overflow-y: scroll;
       &__logo {
         display: block;
         margin: 0 auto;
