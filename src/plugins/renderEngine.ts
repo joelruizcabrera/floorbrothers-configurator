@@ -149,14 +149,26 @@ export default class renderEngine {
     renderTiles():void {
         const tileXMeter = this.config.tileX / 100
         const tileYMeter = this.config.tileY / 100
-        const timesColumn = Math.floor((this.config.roomX - (this.config.roomX % tileXMeter)) / tileXMeter)
-        const timesRow = Math.floor((this.config.roomY - (this.config.roomY % tileYMeter)) / tileYMeter)
+        let timesColumn = Math.floor((this.config.roomX - (this.config.roomX % tileXMeter)) / tileXMeter)
+        let timesRow = Math.floor((this.config.roomY - (this.config.roomY % tileYMeter)) / tileYMeter)
 
         if (this.tilesOrder.length > 0) {
             this.tilesOrder = []
         }
 
         let allStrips:string[] = []
+
+        console.log(this.showStrips)
+        if (this.showStrips) {
+            const spaceBetweenX = (this.config.roomX - (tileXMeter * timesColumn)) / 2
+            const spaceBetweenY = (this.config.roomY - (tileYMeter * timesRow)) / 2
+            if (spaceBetweenX < 0.06) {
+                timesColumn = timesColumn - 1
+            }
+            if (spaceBetweenY < 0.06) {
+                timesRow = timesRow - 1
+            }
+        }
 
         for (let x = 0; x < timesColumn; x++) {
             for (let y = 0; y < timesRow; y++) {
@@ -218,7 +230,7 @@ export default class renderEngine {
         this.config.roomY = roomY;
 
         this.removeOldTiles();
-        this.removeOldStrips();
+        this.switchStrips(this.showStrips);
         this.renderTiles();
         this.renderWalls()
         this.camera.updateProjectionMatrix();
@@ -237,21 +249,19 @@ export default class renderEngine {
             })
             this.currentWallsIds = []
         }
+        this.removeOldStrips()
         this.renderWalls()
+        this.renderTiles()
         this.render()
     }
     switchStrips(val:boolean):void {
         this.showStrips = val
         if (!val) {
-            this.currentStripIds.forEach((e) => {
-                const object = (this.scene.getObjectByProperty('uuid', e) as THREE.Mesh)
-                object.geometry.dispose();
-                (object!.material as THREE.MeshBasicMaterial).dispose();
-                this.scene.remove(object!)
-            })
-            this.currentStripIds = []
+            console.log(this.currentStripIds)
+            this.removeOldStrips()
         }
         this.renderWalls()
+        this.removeOldTiles();
         this.renderTiles()
         this.render()
     }
@@ -267,14 +277,17 @@ export default class renderEngine {
         this.currentTilesIds = []
     }
     removeOldStrips():void {
-        this.currentStripIds.forEach((obj) => {
-            // @ts-ignore
-            const object = (this.scene.getObjectByProperty('uuid', obj) as THREE.Mesh)
-            object.geometry.dispose();
-            (object!.material as THREE.MeshBasicMaterial).dispose();
-            this.scene.remove(object!)
-        })
-        this.currentStripIds = []
+        if (this.currentStripIds.length > 0) {
+            this.currentStripIds.forEach((obj) => {
+                console.log(obj)
+                // @ts-ignore
+                const object = (this.scene.getObjectByProperty('uuid', obj) as THREE.Mesh)
+                object.geometry.dispose();
+                (object!.material as THREE.MeshBasicMaterial).dispose();
+                this.scene.remove(object!)
+            })
+            this.currentStripIds = []
+        }
     }
     renderWalls():void {
 
@@ -327,6 +340,9 @@ export default class renderEngine {
     }
     getTilesCount():number {
         return (this.currentTilesIds.length / 2)
+    }
+    getStripCount():number {
+        return this.currentStripIds.length
     }
     initRaycaster() {
         this.raycaster.init(this.currentTilesIds)
