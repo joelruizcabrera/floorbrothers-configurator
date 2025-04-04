@@ -169,6 +169,7 @@ export default class renderEngine {
                 timesRow = timesRow - 1
             }
         }
+        this.removeOldStrips()
 
         for (let x = 0; x < timesColumn; x++) {
             for (let y = 0; y < timesRow; y++) {
@@ -353,8 +354,10 @@ export default class renderEngine {
             layoutConfig: {
                 roomX: this.config.roomX,
                 roomY: this.config.roomY,
-                showWalls: this.showWalls
+                showWalls: this.showWalls,
+                showStrips: this.showStrips
             },
+            stripObjects: [],
             objects: []
         }
         this.currentTilesIds.forEach((id) => {
@@ -371,6 +374,22 @@ export default class renderEngine {
                 })
             }
         })
+        if (this.showStrips) {
+
+            this.currentStripIds.forEach((id) => {
+                const object = (this.scene.getObjectByProperty('uuid', id) as THREE.Mesh)
+                console.log(object.geometry)
+                // @ts-ignore
+                exportObject.stripObjects.push({
+                    uuid: object.uuid,
+                    // @ts-ignore
+                    color: object.material.color.getHexString(),
+                    position: object.position,
+                    // @ts-ignore
+                    geometry: object.geometry.parameters.geometry.parameters
+                })
+            })
+        }
         const exportEngine = new ExportEngine()
         // @ts-ignore
         exportEngine.downloadConfigFile(exportObject, true, exportObject.layoutId)
@@ -391,6 +410,24 @@ export default class renderEngine {
             this.render()
         }, 100)
 
+    }
+    loadConfigStrips(objects:[]):void {
+        setTimeout(() => {
+            this.removeOldStrips()
+            objects.forEach((obj) => {
+                // @ts-ignore
+                const geometry = new THREE.BoxGeometry( obj.geometry.width, obj.geometry.height, obj.geometry.depth );
+                const edges = new THREE.EdgesGeometry( geometry );
+                // @ts-ignore
+                const lineMaterial = new THREE.LineBasicMaterial( { color: parseInt("0x" + obj.color) } );
+                const tileStrip = new THREE.LineSegments(edges, lineMaterial)
+                // @ts-ignore
+                tileStrip!.position.set(obj.position.x, obj.position.y, obj.position.z)
+                this.currentStripIds.push(tileStrip!.uuid)
+                this.scene!.add(tileStrip)
+            })
+            this.render()
+        }, 100)
     }
 }
 
@@ -487,7 +524,7 @@ export class Tile {
         const stripHeight = 0.395
 
         const stripDepth = 0.018 // change
-        const startZ = this.z
+        const startZ = this.z - 0.001
 
         if (x === 0) {
             const geometry = new THREE.BoxGeometry( stripWidth, stripDepth, this.y );

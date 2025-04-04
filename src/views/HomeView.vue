@@ -154,11 +154,16 @@ async function importLayout(event: any) {
     roomX.value = jsonConfig.layoutConfig.roomX
     roomY.value = jsonConfig.layoutConfig.roomY
     showWalls.value = jsonConfig.layoutConfig.showWalls
+    addStripTile.value = jsonConfig.layoutConfig.showStrips
   }
   engine.renderTiles()
 
   if (jsonConfig.objects.length > 0) {
     engine.loadConfig(jsonConfig.objects)
+  }
+
+  if (jsonConfig.layoutConfig.showStrips && jsonConfig.stripObjects.length > 0) {
+    engine.loadConfigStrips(jsonConfig.stripObjects)
   }
 
   console.log(jsonConfig)
@@ -240,7 +245,7 @@ function exportScreenshot() {
           </button>
         </div>
         <div class="form-group" v-if="addStripTile">
-          <label for="color">Steinleistenfarbe auswählen</label>
+          <label for="color">Seitenleistenfarbe auswählen</label>
           <div class="form-group-select">
             <button name="color" v-for="color in colors" :key="color.key" :class="{'active': color.key == activeColor}" :style="'--element-color: #' + color.hex  + '; background: #' + color.hex + '72'" @click="() => {activeColor = color.key; engine.setClickColor(color.hex)}">
               <svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" version="1.1" id="Pn" x="0px" y="0px" viewBox="0 0 4981 4981" style="enable-background:new 0 0 4981 4981;" xml:space="preserve">
