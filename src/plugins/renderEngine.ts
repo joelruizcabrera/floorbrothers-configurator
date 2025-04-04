@@ -253,6 +253,7 @@ export default class renderEngine {
         this.removeOldStrips()
         this.renderWalls()
         this.renderTiles()
+        this.raycaster.setNewTiles(this.currentTilesIds)
         this.render()
     }
     switchStrips(val:boolean):void {
@@ -264,6 +265,7 @@ export default class renderEngine {
         this.renderWalls()
         this.removeOldTiles();
         this.renderTiles()
+        this.raycaster.setNewTiles(this.currentTilesIds)
         this.render()
     }
 
