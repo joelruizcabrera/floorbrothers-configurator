@@ -5,6 +5,7 @@ import renderEngine from '@/plugins/renderEngine.ts'
 const roomX = ref(2)
 const roomY = ref(3)
 const showWalls = ref(true)
+const addStripTile = ref(true)
 const configFileInput = ref()
 
 let engine:any;
@@ -94,6 +95,7 @@ onMounted(() => {
     showWalls: showWalls.value,
     showGrid: false,
     showAxes: false,
+    showStrips: addStripTile.value,
     tileFactor: 0.005,
     roomX: roomX.value,
     roomY: roomY.value
@@ -124,6 +126,11 @@ watch(roomY, async (newY, oldY) => {
 watch(showWalls, async (newVal, oldVal) => {
   if (newVal !== oldVal) {
     engine.switchWalls(showWalls.value)
+  }
+})
+watch(addStripTile, async (newVal, oldVal) => {
+  if (newVal !== oldVal) {
+    engine.switchStrips(addStripTile.value)
   }
 })
 function switch2d() {
@@ -170,9 +177,13 @@ function exportScreenshot() {
       <img src="/logo.png" alt="FloorBrothers" class="app__engine__sidebar__logo">
       <div class="app__engine__sidebar__config">
         <p style="margin: .75rem 0">Fliesen benötigt: <span v-html="tilesSum"></span></p>
-        <div class="form-group">
+        <div class="form-group" style="margin-bottom: 0">
           <label for="showWalls">Zeige Wände</label>
           <input type="checkbox" v-model.lazy="showWalls" name="showWalls">
+        </div>
+        <div class="form-group">
+          <label for="stripTile">Seitenleisten hinzufügen</label>
+          <input type="checkbox" v-model.lazy="addStripTile" name="stripTile">
         </div>
         <div class="form-group">
           <label for="roomX">Breite (m)</label>

@@ -12,7 +12,8 @@ interface ConfigInterfaceEngine {
     tileZ: number,
     showGrid: boolean,
     showAxes: boolean,
-    showWalls: boolean
+    showWalls: boolean,
+    showStrips: boolean
     tileFactor: number,
     roomX: number,
     roomY: number,
@@ -35,6 +36,7 @@ export default class renderEngine {
 
     currentTilesIds:[];
     currentWallsIds:[];
+    currentStripIds:string[];
 
     cameraPos:any;
 
@@ -43,6 +45,7 @@ export default class renderEngine {
     raycaster;
     clickColor:any;
     showWalls:boolean;
+    showStrips:boolean;
 
     tilesOrder:[];
 
@@ -51,6 +54,7 @@ export default class renderEngine {
         this.config = config;
 
         this.showWalls = config.showWalls;
+        this.showStrips = config.showStrips;
 
         this.container = document.querySelector(id);
         this.camera = new THREE.PerspectiveCamera( 60, this.container!.clientWidth / this.container!.clientHeight, 1, 100 );
@@ -60,6 +64,7 @@ export default class renderEngine {
 
         this.currentTilesIds = []
         this.currentWallsIds = []
+        this.currentStripIds = []
         this.tilesOrder = []
 
         this.raycaster = new RayCaster(this.camera, this.scene, this.container, this.renderer)
@@ -151,6 +156,8 @@ export default class renderEngine {
             this.tilesOrder = []
         }
 
+        let allStrips:string[] = []
+
         for (let x = 0; x < timesColumn; x++) {
             for (let y = 0; y < timesRow; y++) {
                 let startX = (((tileXMeter * timesColumn) / 2) - (tileXMeter * timesColumn) + (tileXMeter / 2))
@@ -180,15 +187,38 @@ export default class renderEngine {
                     // @ts-ignore
                     this.currentTilesIds.push(tile.getFrameUuid())
                 }
+                if (this.showStrips) {
+                    tile.addTileStrip(x, timesColumn, y, timesRow)
+                    allStrips = [...allStrips, ...tile.getStrips()]
+                }
             }
         }
+        this.currentStripIds = allStrips
+        if (this.checkSpaceToWalls(timesColumn, timesRow).x > 0 && this.checkSpaceToWalls(timesColumn, timesRow).y > 0) {
+            //console.log(this.checkSpaceToWalls(timesColumn, timesRow))
+        }
         this.renderWalls()
+    }
+    checkSpaceToWalls(countTilesX:number, countTilesY:number):any {
+        if (countTilesX && countTilesY) {
+            let spaceToX = (this.config.roomX - (countTilesX * (this.config.tileX / 100))) / 2
+            if (spaceToX > 0) {
+                //console.log(spaceToX % 0.06)
+            }
+            return {
+                x: 1,
+                y: 1
+            }
+        } else {
+            return
+        }
     }
     updateFloor(roomX:number, roomY:number) {
         this.config.roomX = roomX;
         this.config.roomY = roomY;
 
-        this.removeOldTiles()
+        this.removeOldTiles();
+        this.removeOldStrips();
         this.renderTiles();
         this.renderWalls()
         this.camera.updateProjectionMatrix();
@@ -210,6 +240,21 @@ export default class renderEngine {
         this.renderWalls()
         this.render()
     }
+    switchStrips(val:boolean):void {
+        this.showStrips = val
+        if (!val) {
+            this.currentStripIds.forEach((e) => {
+                const object = (this.scene.getObjectByProperty('uuid', e) as THREE.Mesh)
+                object.geometry.dispose();
+                (object!.material as THREE.MeshBasicMaterial).dispose();
+                this.scene.remove(object!)
+            })
+            this.currentStripIds = []
+        }
+        this.renderWalls()
+        this.renderTiles()
+        this.render()
+    }
 
     removeOldTiles():void {
         this.currentTilesIds.forEach((obj) => {
@@ -220,6 +265,16 @@ export default class renderEngine {
             this.scene.remove(object!)
         })
         this.currentTilesIds = []
+    }
+    removeOldStrips():void {
+        this.currentStripIds.forEach((obj) => {
+            // @ts-ignore
+            const object = (this.scene.getObjectByProperty('uuid', obj) as THREE.Mesh)
+            object.geometry.dispose();
+            (object!.material as THREE.MeshBasicMaterial).dispose();
+            this.scene.remove(object!)
+        })
+        this.currentStripIds = []
     }
     renderWalls():void {
 
@@ -364,6 +419,7 @@ export class Tile {
     posX: number;
     posY: number;
     showWireframe;
+    strips:[];
     constructor(config: ConfigInterfaceTile, scene: THREE.Scene, id: string, pos: any) {
         this.x = config.x;
         this.y = config.y;
@@ -375,6 +431,7 @@ export class Tile {
         this.showWireframe = true;
         this.cube = null;
         this.frame = null;
+        this.strips = []
     }
     getX() {
         return this.x;
@@ -387,6 +444,9 @@ export class Tile {
     }
     getFrameUuid(): string {
         return this.frame!.uuid
+    }
+    getStrips(): string[] {
+        return this.strips
     }
 
     render() {
@@ -404,6 +464,94 @@ export class Tile {
 
         if (this.showWireframe) {
             this.renderWireframe(geometry);
+        }
+    }
+    addTileStrip(x:number, countColumn:number, y:number, countRow:number):void {
+        const stripWidth = 0.06
+        const stripHeight = 0.395
+
+        const stripDepth = 0.018 // change
+        const startZ = this.z
+
+        if (x === 0) {
+            const geometry = new THREE.BoxGeometry( stripWidth, stripDepth, this.y );
+            const edges = new THREE.EdgesGeometry( geometry );
+            const lineMaterial = new THREE.LineBasicMaterial( { color: 'dodgerblue' } );
+            const tileStrip = new THREE.LineSegments(edges, lineMaterial)
+            tileStrip!.position.set((this.posX - (this.x / 2) - (stripWidth / 2)), startZ, this.posY)
+            this.scene!.add(tileStrip)
+            // @ts-ignore
+            this.strips.push(tileStrip.uuid);
+            if (y === 0) {
+                const geometryStart = new THREE.BoxGeometry( this.y, stripDepth, stripWidth );
+                const edgesStart = new THREE.EdgesGeometry( geometryStart );
+                const lineMaterialStart = new THREE.LineBasicMaterial( { color: 'dodgerblue' } );
+                const tileStripStart = new THREE.LineSegments(edgesStart, lineMaterialStart)
+                tileStripStart!.position.set(this.posX, startZ, (this.posY - (this.y / 2) - (stripWidth / 2)))
+                this.scene!.add(tileStripStart)
+                // @ts-ignore
+                this.strips.push(tileStripStart.uuid);
+            }
+            if (y === (countRow - 1)) {
+                const geometryEnd = new THREE.BoxGeometry( this.y, stripDepth, stripWidth );
+                const edgesEnd = new THREE.EdgesGeometry( geometryEnd );
+                const lineMaterialEnd = new THREE.LineBasicMaterial( { color: 'dodgerblue' } );
+                const tileStripEnd = new THREE.LineSegments(edgesEnd, lineMaterialEnd)
+                tileStripEnd!.position.set(this.posX, startZ, (this.posY + (this.y / 2) + (stripWidth / 2)))
+                this.scene!.add(tileStripEnd)
+                // @ts-ignore
+                this.strips.push(tileStripEnd.uuid);
+            }
+        }
+        if (x === (countColumn - 1)) {
+            const geometry = new THREE.BoxGeometry( stripWidth, stripDepth, this.y );
+            const edges = new THREE.EdgesGeometry( geometry );
+            const lineMaterial = new THREE.LineBasicMaterial( { color: 'dodgerblue' } );
+            const tileStrip = new THREE.LineSegments(edges, lineMaterial)
+            tileStrip!.position.set((this.posX + (this.x / 2) + (stripWidth / 2)), startZ, this.posY)
+            this.scene!.add(tileStrip)
+            // @ts-ignore
+            this.strips.push(tileStrip.uuid);
+            if (y === 0) {
+                const geometryStart = new THREE.BoxGeometry( this.y, stripDepth, stripWidth );
+                const edgesStart = new THREE.EdgesGeometry( geometryStart );
+                const lineMaterialStart = new THREE.LineBasicMaterial( { color: 'dodgerblue' } );
+                const tileStripStart = new THREE.LineSegments(edgesStart, lineMaterialStart)
+                tileStripStart!.position.set(this.posX, startZ, (this.posY - (this.y / 2) - (stripWidth / 2)))
+                this.scene!.add(tileStripStart)
+                // @ts-ignore
+                this.strips.push(tileStripStart.uuid);
+            }
+            if (y === (countRow - 1)) {
+                const geometryEnd = new THREE.BoxGeometry( this.y, stripDepth, stripWidth );
+                const edgesEnd = new THREE.EdgesGeometry( geometryEnd );
+                const lineMaterialEnd = new THREE.LineBasicMaterial( { color: 'dodgerblue' } );
+                const tileStripEnd = new THREE.LineSegments(edgesEnd, lineMaterialEnd)
+                tileStripEnd!.position.set(this.posX, startZ, (this.posY + (this.y / 2) + (stripWidth / 2)))
+                this.scene!.add(tileStripEnd)
+                // @ts-ignore
+                this.strips.push(tileStripEnd.uuid);
+            }
+        }
+        if (y === 0 && x >= 1 && x < (countColumn -1)) {
+            const geometry = new THREE.BoxGeometry( this.y, stripDepth, stripWidth );
+            const edges = new THREE.EdgesGeometry( geometry );
+            const lineMaterial = new THREE.LineBasicMaterial( { color: 'dodgerblue' } );
+            const tileStrip = new THREE.LineSegments(edges, lineMaterial)
+            tileStrip!.position.set(this.posX, startZ, (this.posY - (this.y / 2) - (stripWidth / 2)))
+            this.scene!.add(tileStrip)
+            // @ts-ignore
+            this.strips.push(tileStrip.uuid);
+        }
+        if (y === (countRow - 1) && x >= 1 && x < (countColumn -1)) {
+            const geometry = new THREE.BoxGeometry( this.y, stripDepth, stripWidth );
+            const edges = new THREE.EdgesGeometry( geometry );
+            const lineMaterial = new THREE.LineBasicMaterial( { color: 'dodgerblue' } );
+            const tileStrip = new THREE.LineSegments(edges, lineMaterial)
+            tileStrip!.position.set(this.posX, startZ, (this.posY + (this.y / 2) + (stripWidth / 2)))
+            this.scene!.add(tileStrip)
+            // @ts-ignore
+            this.strips.push(tileStrip.uuid);
         }
     }
     renderWireframe(geometry:any) {
@@ -478,7 +626,6 @@ export class RayCaster {
                     this.intersecting.push(obj)
                     // @ts-ignore
                     obj.material.color.set(parseInt(('0x' + this.clickColor)))
-                    console.log(obj)
                 }
             }
         })
