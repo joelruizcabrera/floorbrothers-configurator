@@ -266,6 +266,7 @@ export default class renderEngine {
         this.removeOldTiles();
         this.renderTiles()
         this.raycaster.setNewTiles(this.currentTilesIds)
+
         this.render()
     }
 
