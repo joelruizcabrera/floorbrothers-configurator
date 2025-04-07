@@ -14,6 +14,7 @@ const tilesSum = ref(null)
 const stripTileSum = ref(null)
 
 let activeColor = ref('black')
+let activeStripColor = ref('grey')
 
 const colors = [
   {
@@ -105,6 +106,7 @@ onMounted(() => {
   tilesSum.value = engine.getTilesCount()
   stripTileSum.value = engine.getStripCount()
   engine.setClickColor('191919')
+  engine.setClickStripColor('63666a')
 })
 
 watch(roomX, async (newX, oldX) => {
@@ -247,7 +249,7 @@ function exportScreenshot() {
         <div class="form-group" v-if="addStripTile">
           <label for="color">Seitenleistenfarbe auswählen</label>
           <div class="form-group-select">
-            <button name="color" v-for="color in colors" :key="color.key" :class="{'active': color.key == activeColor}" :style="'--element-color: #' + color.hex  + '; background: #' + color.hex + '72'" @click="() => {activeColor = color.key; engine.setClickColor(color.hex)}">
+            <button name="color" v-for="color in colors" :key="color.key" :class="{'active': color.key == activeStripColor}" :style="'--element-color: #' + color.hex  + '; background: #' + color.hex + '72'" @click="() => {activeStripColor = color.key; engine.setClickStripColor(color.hex)}">
               <svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" version="1.1" id="Pn" x="0px" y="0px" viewBox="0 0 4981 4981" style="enable-background:new 0 0 4981 4981;" xml:space="preserve">
                 <g>
                   <defs>
@@ -276,9 +278,9 @@ function exportScreenshot() {
               </svg>
             </button>
           </div>
-          <button class="form-group-fill-all" @click="engine.changeAllColor()">
+          <button class="form-group-fill-all" @click="engine.changeAllStripColor()">
             <svg fill="#fff" width="64px" height="64px" viewBox="-2.4 -2.4 28.80 28.80" xmlns="http://www.w3.org/2000/svg" stroke="#fff" stroke-width="0.00024000000000000003"><g id="SVGRepo_bgCarrier" stroke-width="0"></g><g id="SVGRepo_tracerCarrier" stroke-linecap="round" stroke-linejoin="round" stroke="#fffCCCCCC" stroke-width="0.144"></g><g id="SVGRepo_iconCarrier"><path d="M20 14c-.092.064-2 2.083-2 3.5 0 1.494.949 2.448 2 2.5.906.044 2-.891 2-2.5 0-1.5-1.908-3.436-2-3.5zM9.586 20c.378.378.88.586 1.414.586s1.036-.208 1.414-.586l7-7-.707-.707L11 4.586 8.707 2.293 7.293 3.707 9.586 6 4 11.586c-.378.378-.586.88-.586 1.414s.208 1.036.586 1.414L9.586 20zM11 7.414 16.586 13H5.414L11 7.414z"></path></g></svg>
-            <p><span v-html="colors.filter((e) => e.key === activeColor).map(obj => obj.title)"></span> füllen.</p>
+            <p><span v-html="colors.filter((e) => e.key === activeStripColor).map(obj => obj.title)"></span> füllen.</p>
           </button>
         </div>
         <div class="form-group">

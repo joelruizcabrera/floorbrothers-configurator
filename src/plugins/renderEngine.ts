@@ -5,6 +5,9 @@ import { KMZLoader } from 'three/addons/loaders/KMZLoader.js';
 import {GLTFLoader} from "three/examples/jsm/loaders/GLTFLoader.js";
 import {DRACOLoader} from "three/examples/jsm/loaders/DRACOLoader.js";
 import {BufferGeometry, Scene} from "three";
+import {ExportEngine} from "@/plugins/exportEngine.ts";
+import {Tile} from "@/plugins/tileHandler.ts"
+import {RayCaster} from "@/plugins/raycasterEngine.ts";
 
 interface ConfigInterfaceEngine {
     tileX: number,
@@ -17,11 +20,6 @@ interface ConfigInterfaceEngine {
     tileFactor: number,
     roomX: number,
     roomY: number,
-}
-interface ConfigInterfaceTile {
-    x: number,
-    y: number,
-    z: number
 }
 
 export default class renderEngine {
@@ -44,6 +42,7 @@ export default class renderEngine {
 
     raycaster;
     clickColor:any;
+    clickStripColor:any;
     showWalls:boolean;
     showStrips:boolean;
 
@@ -75,6 +74,10 @@ export default class renderEngine {
         this.clickColor = color;
         this.raycaster.setClickColor(this.clickColor)
     }
+    setClickStripColor(color:any) {
+        this.clickStripColor = color
+        this.raycaster.setClickStripColor(this.clickStripColor)
+    }
     getClickColor():any {
         return this.clickColor
     }
@@ -84,6 +87,16 @@ export default class renderEngine {
             if (obj.type === 'Mesh') {
                 // @ts-ignore
                 obj.material.color.set(parseInt(('0x' + this.clickColor)))
+            }
+        })
+        this.render()
+    }
+    changeAllStripColor() {
+        this.currentStripIds.forEach((e) => {
+            const obj = (this.scene.getObjectByProperty('uuid', e) as THREE.Mesh)
+            if (obj.type === 'Mesh') {
+                // @ts-ignore
+                obj.material.color.set(parseInt(('0x' + this.clickStripColor)))
             }
         })
         this.render()
@@ -158,7 +171,6 @@ export default class renderEngine {
 
         let allStrips:string[] = []
 
-        console.log(this.showStrips)
         if (this.showStrips) {
             const spaceBetweenX = (this.config.roomX - (tileXMeter * timesColumn)) / 2
             const spaceBetweenY = (this.config.roomY - (tileYMeter * timesRow)) / 2
@@ -169,6 +181,7 @@ export default class renderEngine {
                 timesRow = timesRow - 1
             }
         }
+        this.removeOldTiles()
         this.removeOldStrips()
 
         for (let x = 0; x < timesColumn; x++) {
@@ -235,7 +248,7 @@ export default class renderEngine {
         this.renderTiles();
         this.renderWalls()
         this.camera.updateProjectionMatrix();
-        this.raycaster.setNewTiles(this.currentTilesIds)
+        this.raycaster.setNewTiles(this.currentTilesIds, this.currentStripIds)
         this.render()
     }
 
@@ -253,19 +266,18 @@ export default class renderEngine {
         this.removeOldStrips()
         this.renderWalls()
         this.renderTiles()
-        this.raycaster.setNewTiles(this.currentTilesIds)
+        this.raycaster.setNewTiles(this.currentTilesIds, this.currentStripIds)
         this.render()
     }
     switchStrips(val:boolean):void {
         this.showStrips = val
         if (!val) {
-            console.log(this.currentStripIds)
             this.removeOldStrips()
         }
         this.renderWalls()
         this.removeOldTiles();
         this.renderTiles()
-        this.raycaster.setNewTiles(this.currentTilesIds)
+        this.raycaster.setNewTiles(this.currentTilesIds, this.currentStripIds)
 
         this.render()
     }
@@ -283,7 +295,6 @@ export default class renderEngine {
     removeOldStrips():void {
         if (this.currentStripIds.length > 0) {
             this.currentStripIds.forEach((obj) => {
-                console.log(obj)
                 // @ts-ignore
                 const object = (this.scene.getObjectByProperty('uuid', obj) as THREE.Mesh)
                 object.geometry.dispose();
@@ -343,13 +354,14 @@ export default class renderEngine {
 
     }
     getTilesCount():number {
+        console.log(this.currentTilesIds)
         return (this.currentTilesIds.length / 2)
     }
     getStripCount():number {
-        return this.currentStripIds.length
+        return this.currentStripIds.length / 2
     }
     initRaycaster() {
-        this.raycaster.init(this.currentTilesIds)
+        this.raycaster.init(this.currentTilesIds, this.currentStripIds)
     }
     exportLayout():void {
         let exportObject:{} = {
@@ -432,263 +444,4 @@ export default class renderEngine {
             this.render()
         }, 100)
     }
-}
-
-export class ExportEngine {
-    constructor() {
-    }
-    downloadConfigFile(json:{}, download:boolean, id:any) {
-        const fileName = 'FB_LAYOUT_' + id + '.json'
-        const file = this.renderJsonConfig(json, fileName)
-        if (download) {
-            if (window.navigator && (window.navigator as any).msSaveOrOpenBlob) { // IE
-                (window.navigator as any).msSaveOrOpenBlob(file, fileName);
-                (window.navigator as any).msSaveOrOpenBlob(file, fileName);
-            } else { //Chrome & Firefox
-                const a = document.createElement('a');
-                const url = window.URL.createObjectURL(file);
-                a.href = url;
-                a.download = fileName;
-                a.click();
-                window.URL.revokeObjectURL(url);
-                a.remove();
-            }
-        }
-    }
-    renderJsonConfig(json:{}, fileName:string):File {
-        return new File([JSON.stringify(json)], fileName, {
-            type: 'application/json'
-        })
-    }
-}
-
-export class Tile {
-    x: number;
-    y: number;
-    z: number;
-    scene: THREE.Scene | null;
-
-    cube: THREE.Mesh | null;
-    frame: THREE.LineSegments | null;
-    id: string;
-
-    posX: number;
-    posY: number;
-    showWireframe;
-    strips:[];
-    constructor(config: ConfigInterfaceTile, scene: THREE.Scene, id: string, pos: any) {
-        this.x = config.x;
-        this.y = config.y;
-        this.z = config.z;
-        this.scene = scene;
-        this.id = id;
-        this.posX = pos.posX;
-        this.posY = pos.posY;
-        this.showWireframe = true;
-        this.cube = null;
-        this.frame = null;
-        this.strips = []
-    }
-    getX() {
-        return this.x;
-    }
-    getY() {
-        return this.y;
-    }
-    getCubeUuid(): string {
-        return this.cube!.uuid
-    }
-    getFrameUuid(): string {
-        return this.frame!.uuid
-    }
-    getStrips(): string[] {
-        return this.strips
-    }
-
-    render() {
-        //console.log("ID: " + this.id)
-        /*
-        MESH
-         */
-        const geometry = new THREE.BoxGeometry( this.x, this.z, this.y );
-        const material = new THREE.MeshBasicMaterial( {color: 0x191919} );
-        this.cube = new THREE.Mesh( geometry, material );
-
-        this.cube.position.set(this.posX, ((this.z / 2) + 0.01), this.posY)
-
-        this.scene!.add(this.cube)
-
-        if (this.showWireframe) {
-            this.renderWireframe(geometry);
-        }
-    }
-    addTileStrip(x:number, countColumn:number, y:number, countRow:number):void {
-        const stripWidth = 0.06
-        const stripHeight = 0.395
-
-        const stripDepth = 0.018 // change
-        const startZ = this.z - 0.001
-
-        if (x === 0) {
-            const geometry = new THREE.BoxGeometry( stripWidth, stripDepth, this.y );
-            const edges = new THREE.EdgesGeometry( geometry );
-            const lineMaterial = new THREE.LineBasicMaterial( { color: 'dodgerblue' } );
-            const tileStrip = new THREE.LineSegments(edges, lineMaterial)
-            tileStrip!.position.set((this.posX - (this.x / 2) - (stripWidth / 2)), startZ, this.posY)
-            this.scene!.add(tileStrip)
-            // @ts-ignore
-            this.strips.push(tileStrip.uuid);
-            if (y === 0) {
-                const geometryStart = new THREE.BoxGeometry( this.y, stripDepth, stripWidth );
-                const edgesStart = new THREE.EdgesGeometry( geometryStart );
-                const lineMaterialStart = new THREE.LineBasicMaterial( { color: 'dodgerblue' } );
-                const tileStripStart = new THREE.LineSegments(edgesStart, lineMaterialStart)
-                tileStripStart!.position.set(this.posX, startZ, (this.posY - (this.y / 2) - (stripWidth / 2)))
-                this.scene!.add(tileStripStart)
-                // @ts-ignore
-                this.strips.push(tileStripStart.uuid);
-            }
-            if (y === (countRow - 1)) {
-                const geometryEnd = new THREE.BoxGeometry( this.y, stripDepth, stripWidth );
-                const edgesEnd = new THREE.EdgesGeometry( geometryEnd );
-                const lineMaterialEnd = new THREE.LineBasicMaterial( { color: 'dodgerblue' } );
-                const tileStripEnd = new THREE.LineSegments(edgesEnd, lineMaterialEnd)
-                tileStripEnd!.position.set(this.posX, startZ, (this.posY + (this.y / 2) + (stripWidth / 2)))
-                this.scene!.add(tileStripEnd)
-                // @ts-ignore
-                this.strips.push(tileStripEnd.uuid);
-            }
-        }
-        if (x === (countColumn - 1)) {
-            const geometry = new THREE.BoxGeometry( stripWidth, stripDepth, this.y );
-            const edges = new THREE.EdgesGeometry( geometry );
-            const lineMaterial = new THREE.LineBasicMaterial( { color: 'dodgerblue' } );
-            const tileStrip = new THREE.LineSegments(edges, lineMaterial)
-            tileStrip!.position.set((this.posX + (this.x / 2) + (stripWidth / 2)), startZ, this.posY)
-            this.scene!.add(tileStrip)
-            // @ts-ignore
-            this.strips.push(tileStrip.uuid);
-            if (y === 0) {
-                const geometryStart = new THREE.BoxGeometry( this.y, stripDepth, stripWidth );
-                const edgesStart = new THREE.EdgesGeometry( geometryStart );
-                const lineMaterialStart = new THREE.LineBasicMaterial( { color: 'dodgerblue' } );
-                const tileStripStart = new THREE.LineSegments(edgesStart, lineMaterialStart)
-                tileStripStart!.position.set(this.posX, startZ, (this.posY - (this.y / 2) - (stripWidth / 2)))
-                this.scene!.add(tileStripStart)
-                // @ts-ignore
-                this.strips.push(tileStripStart.uuid);
-            }
-            if (y === (countRow - 1)) {
-                const geometryEnd = new THREE.BoxGeometry( this.y, stripDepth, stripWidth );
-                const edgesEnd = new THREE.EdgesGeometry( geometryEnd );
-                const lineMaterialEnd = new THREE.LineBasicMaterial( { color: 'dodgerblue' } );
-                const tileStripEnd = new THREE.LineSegments(edgesEnd, lineMaterialEnd)
-                tileStripEnd!.position.set(this.posX, startZ, (this.posY + (this.y / 2) + (stripWidth / 2)))
-                this.scene!.add(tileStripEnd)
-                // @ts-ignore
-                this.strips.push(tileStripEnd.uuid);
-            }
-        }
-        if (y === 0 && x >= 1 && x < (countColumn -1)) {
-            const geometry = new THREE.BoxGeometry( this.y, stripDepth, stripWidth );
-            const edges = new THREE.EdgesGeometry( geometry );
-            const lineMaterial = new THREE.LineBasicMaterial( { color: 'dodgerblue' } );
-            const tileStrip = new THREE.LineSegments(edges, lineMaterial)
-            tileStrip!.position.set(this.posX, startZ, (this.posY - (this.y / 2) - (stripWidth / 2)))
-            this.scene!.add(tileStrip)
-            // @ts-ignore
-            this.strips.push(tileStrip.uuid);
-        }
-        if (y === (countRow - 1) && x >= 1 && x < (countColumn -1)) {
-            const geometry = new THREE.BoxGeometry( this.y, stripDepth, stripWidth );
-            const edges = new THREE.EdgesGeometry( geometry );
-            const lineMaterial = new THREE.LineBasicMaterial( { color: 'dodgerblue' } );
-            const tileStrip = new THREE.LineSegments(edges, lineMaterial)
-            tileStrip!.position.set(this.posX, startZ, (this.posY + (this.y / 2) + (stripWidth / 2)))
-            this.scene!.add(tileStrip)
-            // @ts-ignore
-            this.strips.push(tileStrip.uuid);
-        }
-    }
-    renderWireframe(geometry:any) {
-        const edges = new THREE.EdgesGeometry( geometry );
-        const lineMaterial = new THREE.LineBasicMaterial( { color: 'black' } );
-        this.frame = new THREE.LineSegments( edges, lineMaterial );
-        this.frame!.position.set(this.posX, ((this.z / 2) + 0.01), this.posY)
-        this.scene!.add(this.frame)
-    }
-
-    handleClick(event: Event):void {
-        console.log(event)
-    }
-
-}
-
-export class RayCaster {
-    camera;
-    scene;
-    pointer;
-    container;
-    raycast;
-    intersecting:[];
-    currentTiles:[];
-    renderer;
-    clickColor:any;
-    constructor(camera: THREE.Camera, scene: THREE.Scene, container:any, renderer: THREE.WebGLRenderer) {
-        this.camera = camera;
-        this.scene = scene;
-        this.raycast = new THREE.Raycaster();
-        this.pointer = new THREE.Vector2();
-        this.container = container
-        this.intersecting = []
-        this.renderer = renderer
-        this.currentTiles = [];
-    }
-    setClickColor(color:any) {
-        this.clickColor = color
-    }
-    setNewTiles(tiles:[]) {
-        this.currentTiles = tiles
-    }
-    init(tiles:[]) {
-        this.currentTiles = tiles
-        // @ts-ignore
-        this.container.addEventListener( 'click', (event) => {
-            this.onPointerMove(event)
-        });
-
-    }
-    onPointerMove(event: any):void {
-        const rect = this.renderer.domElement.getBoundingClientRect();
-
-        const x = event.clientX - rect.left;
-        const y = event.clientY - rect.top;
-
-        this.pointer.x =( x / this.container.clientWidth ) *  2 - 1;
-        this.pointer.y =( y / this.container.clientHeight) * - 2 + 1;
-        this.render()
-    }
-    render():void {
-        this.raycast.setFromCamera(this.pointer, this.camera)
-        const meshs = this.scene.children.filter((obj) => obj.type === 'Mesh')
-        this.intersecting = []
-        meshs.forEach((mesh) => {
-            const intersects = this.raycast.intersectObject(mesh);
-            if (intersects.length !== 0) {
-                let obj = intersects[0].object;
-                // @ts-ignore
-                if (this.currentTiles.includes(obj.uuid)) {
-                    // @ts-ignore
-                    this.intersecting.push(obj)
-                    // @ts-ignore
-                    obj.material.color.set(parseInt(('0x' + this.clickColor)))
-                }
-            }
-        })
-        this.renderer.clear();
-        this.renderer.render( this.scene, this.camera );
-    }
-    // @ts-ignore
-    genRanHex = size => [...Array(size)].map(() => Math.floor(Math.random() * 16).toString(16)).join('');
-
 }
